@@ -140,12 +140,48 @@ run hours apart:
 | 2 | After a VPN change, 4 workers, 150s timeout, 1 retry | **8 of 8** | Every model 30/30, zero failures — the numbers quoted earlier in this project's development |
 | 3 (committed here) | Same as run 2, different time of day | 3 of 8 | Backend-side degradation unrelated to network path — `nemotron-3-ultra-free` alone took 38 minutes for 30 items and got 2 through |
 
-Run 2's clean numbers, for reference (not in `results/`, but worth knowing):
-`muse-spark-1.3-contributor-free` $34.84 (r²=87.6%), `nemotron-3-ultra-free`
-$50.04 (r²=71.6%), `fledge-alpha-free` $55.27 (r²=73.4%), `mimo-v2.6-flash-free`
-$63.56 (r²=59.7%), `longcat-2.5-preview-free` $64.01 (r²=67.2%),
-`ling-3.1-flash-free` $70.85 (r²=59.1%), `nemotron-3.5-lightning-free` $93.65
-(r²=-58.1%), `space-bunny-free` $126.27 (r²=-24.3%).
+### Run 2 in detail — the cleanest sweep, and how it stacks up
+
+Run 2 is the only sweep where every single model completed all 30 calls — the
+most trustworthy comparison this project produced. Its full scoreboard,
+ranked best to worst:
+
+| Rank | Model | Avg Error | MSE | r² | Avg Latency |
+|---|---|---|---|---|---|
+| 1 | `muse-spark-1.3-contributor-free` | $34.84 | 3,242 | 87.6% | 37.6s |
+| 2 | `nemotron-3-ultra-free` | $50.04 | 7,424 | 71.6% | 58.8s |
+| 3 | `fledge-alpha-free` | $55.27 | 6,960 | 73.4% | 33.4s |
+| 4 | `mimo-v2.6-flash-free` | $63.56 | 10,523 | 59.7% | 29.0s |
+| 5 | `longcat-2.5-preview-free` | $64.01 | 8,569 | 67.2% | 25.6s |
+| 6 | `ling-3.1-flash-free` | $70.85 | 10,695 | 59.1% | 53.0s |
+| 7 | `nemotron-3.5-lightning-free` | $93.65 | 41,342 | -58.1% | 25.6s |
+| 8 | `space-bunny-free` | $126.27 | 32,506 | -24.3% | 21.3s |
+
+**How this stacks against the original notebook's numbers** (GPT-4.1-Nano
+$68.00, Luna $54.91, Jev single-pass $58.78 — all n=200, via direct
+OpenRouter calls):
+
+- `muse-spark-1.3-contributor-free` at **$34.84 beats all three** reference
+  models, including Jev and Luna — and at r²=87.6% it isn't just a couple of
+  lucky guesses.
+- `nemotron-3-ultra-free` ($50.04) and `fledge-alpha-free` ($55.27) land
+  right around Luna's level.
+- `mimo-v2.6-flash-free`, `longcat-2.5-preview-free`, and `ling-3.1-flash-free`
+  cluster near GPT-4.1-Nano's level.
+- `nemotron-3.5-lightning-free` and `space-bunny-free` post negative r² —
+  worse than always guessing the dataset's average price. A single $870 miss
+  on a cheap item did most of the damage for `nemotron-3.5-lightning-free`.
+
+**Why this table isn't the headline numbers above:** run 2 predates this
+repo's per-item CSV logging (`benchmark.py`'s `--size`/CSV output was added
+afterward), so unlike the [Results](#results-n30-per-model) table, there's no
+`results/<model>.csv` backing these specific figures — they're reconstructed
+from that session's console output, not independently re-verifiable the same
+way. They're real, and you can reproduce them yourself (see
+[Reproducing](#reproducing)), but they don't carry the same raw-data
+guarantee the rest of this README holds itself to. That's exactly why the
+[Results](#results-n30-per-model) table above uses run 3 as the committed,
+fully-traceable headline — even though run 2 looks better.
 
 **Takeaway: these models' availability and latency fluctuate significantly
 run to run, independent of which network path you're on.** Treat any single
