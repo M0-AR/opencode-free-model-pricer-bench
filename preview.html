@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenCode Free-Tier Model Pricer Bench</title>
+<meta name="description" content="Can free LLMs guess a product's price from its description? A hands-on, from-scratch-to-pro benchmark and learning guide." />
+<style>
+  :root{
+    --bg:#fafafa; --bg-card:#ffffff; --text:#1a1a2e; --text-dim:#5a5a6e;
+    --accent:#4f46e5; --accent-2:#06b6d4; --green:#16a34a; --orange:#d97706; --red:#dc2626;
+    --border:#e5e5ea; --code-bg:#f4f4f8; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f0f17; --bg-card:#171722; --text:#e8e8f0; --text-dim:#9898ac;
+      --accent:#818cf8; --accent-2:#22d3ee; --green:#4ade80; --orange:#fbbf24; --red:#f87171;
+      --border:#2a2a3a; --code-bg:#1d1d2b; --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:0 20px;}
+  header.hero{
+    background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color:white; padding:64px 20px 56px; text-align:center;
+  }
+  header.hero h1{font-size:2.1rem; margin:0 0 12px; font-weight:800; letter-spacing:-0.02em;}
+  header.hero p.tagline{color:#ffffff; font-size:1.15rem; opacity:0.95; max-width:620px; margin:0 auto 24px;}
+  .pills{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px;}
+  .pill{
+    background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.35);
+    padding:5px 14px; border-radius:999px; font-size:0.82rem; font-weight:600;
+  }
+  .cta-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+  .btn{
+    display:inline-block; padding:11px 22px; border-radius:10px; font-weight:700;
+    text-decoration:none; font-size:0.95rem; transition:transform .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{background:white; color:var(--accent);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:white; border:1.5px solid rgba(255,255,255,0.5);}
+
+  main{padding:48px 0 80px;}
+  section{margin-bottom:56px;}
+  h2{font-size:1.5rem; margin:0 0 18px; letter-spacing:-0.01em;}
+  h2 .emoji{margin-right:8px;}
+  h3{font-size:1.1rem; margin:24px 0 10px;}
+  p{color:var(--text-dim);}
+  .card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
+    padding:24px; box-shadow:var(--shadow);
+  }
+  .abstract{
+    background:var(--bg-card); border:1px solid var(--border); border-left:4px solid var(--accent);
+    border-radius:10px; padding:22px 26px; font-size:1.02rem; color:var(--text);
+  }
+  .abstract b{color:var(--accent);}
+  img, video{max-width:100%; border-radius:10px; border:1px solid var(--border); display:block;}
+  figure{margin:18px 0;}
+  figcaption{font-size:0.85rem; color:var(--text-dim); margin-top:8px; text-align:center;}
+
+  table{width:100%; border-collapse:collapse; font-size:0.92rem;}
+  th, td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--border);}
+  th{color:var(--text-dim); font-weight:600; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;}
+  td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  .dot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px;}
+  .dot-g{background:var(--green);} .dot-o{background:var(--orange);} .dot-r{background:var(--red);}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:640px){.grid-2{grid-template-columns:1fr;}}
+  .feature{background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:18px;}
+  .feature h4{margin:0 0 6px; font-size:1rem;}
+  .feature p{margin:0; font-size:0.9rem;}
+
+  blockquote{
+    border-left:3px solid var(--accent-2); margin:16px 0; padding:4px 0 4px 18px;
+    font-style:italic; color:var(--text);
+  }
+  code, pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:0.88rem;}
+  code{background:var(--code-bg); padding:2px 6px; border-radius:5px;}
+  pre{background:var(--code-bg); padding:16px; border-radius:10px; overflow-x:auto; border:1px solid var(--border);}
+  pre code{background:none; padding:0;}
+
+  details{background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin:10px 0;}
+  details summary{cursor:pointer; font-weight:600;}
+  details[open] summary{margin-bottom:10px;}
+
+  /* Quiz */
+  .quiz-card{background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px; box-shadow:var(--shadow);}
+  .quiz-tabs{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+  .quiz-tab{
+    padding:7px 14px; border-radius:8px; border:1px solid var(--border); background:var(--code-bg);
+    font-size:0.85rem; font-weight:600; cursor:pointer; color:var(--text-dim);
+  }
+  .quiz-tab.active{background:var(--accent); color:white; border-color:var(--accent);}
+  .q{display:none;}
+  .q.visible{display:block;}
+  .q-level{font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); font-weight:700; margin-bottom:6px;}
+  .q-text{font-weight:600; margin-bottom:12px; font-size:1.02rem;}
+  .q-options{display:flex; flex-direction:column; gap:8px;}
+  .q-option{
+    text-align:left; padding:11px 14px; border-radius:9px; border:1.5px solid var(--border);
+    background:var(--bg); cursor:pointer; font-size:0.92rem; color:var(--text);
+  }
+  .q-option:hover{border-color:var(--accent);}
+  .q-option.correct{border-color:var(--green); background:rgba(74,222,128,0.12);}
+  .q-option.wrong{border-color:var(--red); background:rgba(248,113,113,0.12);}
+  .q-explain{margin-top:12px; padding:12px 14px; border-radius:9px; background:var(--code-bg); font-size:0.88rem; display:none;}
+  .q-explain.visible{display:block;}
+  .q-nav{display:flex; justify-content:space-between; align-items:center; margin-top:18px;}
+  .q-progress{font-size:0.85rem; color:var(--text-dim);}
+  .q-score{font-weight:700; color:var(--accent);}
+  .nav-btn{
+    padding:8px 16px; border-radius:8px; border:none; background:var(--accent); color:white;
+    font-weight:600; cursor:pointer; font-size:0.88rem;
+  }
+  .nav-btn:disabled{opacity:0.4; cursor:not-allowed;}
+
+  footer{text-align:center; padding:40px 20px; color:var(--text-dim); font-size:0.85rem; border-top:1px solid var(--border);}
+  a{color:var(--accent);}
+  .toc{display:flex; flex-wrap:wrap; gap:10px; margin:0 0 40px; font-size:0.88rem;}
+  .toc a{background:var(--bg-card); border:1px solid var(--border); padding:6px 12px; border-radius:999px; text-decoration:none; color:var(--text);}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Can a free AI model guess what something costs?</h1>
+    <p class="tagline">A from-scratch, fully reproducible benchmark of OpenCode's free-tier language models — and a self-contained guide that teaches you how to read the results like a professional, even if you've never evaluated an AI model before.</p>
+    <div class="pills">
+      <span class="pill">MIT Licensed</span>
+      <span class="pill">100% Reproducible</span>
+      <span class="pill">Zero API Cost</span>
+      <span class="pill">Beginner &rarr; Pro</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#results">See the results</a>
+      <a class="btn btn-ghost" href="#beginner-guide">Start the beginner guide</a>
+      <a class="btn btn-ghost" href="#quiz">Take the quiz</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <nav class="toc">
+    <a href="#abstract">Abstract</a>
+    <a href="#what-is-this">What is this?</a>
+    <a href="#results">Results</a>
+    <a href="#use-cases">Use cases</a>
+    <a href="#beginner-guide">Beginner guide</a>
+    <a href="#prompting">Prompting lesson</a>
+    <a href="#reliability">Reliability</a>
+    <a href="#quiz">Quiz</a>
+    <a href="#reproduce">Run it yourself</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+
+  <section id="abstract">
+    <h2><span class="emoji">🧭</span>Abstract</h2>
+    <div class="abstract">
+      <p style="margin:0 0 10px;">This project asks a simple question — <b>given nothing but a product's title, category, and a short description, can a free AI model estimate its real-world price?</b> — and answers it with real numbers instead of marketing claims.</p>
+      <p style="margin:0 0 10px;">Eight free language models were each shown 30 real product listings and asked to name a price, in US dollars, no explanation. Their guesses were then compared to the actual sale price, scored the same way a well-known public benchmark (<a href="https://github.com/ed-donner/pricer" target="_blank" rel="noopener">ed-donner/pricer</a>) scores GPT-4.1-Nano, GPT-5.6 Luna, and TypeSafe's Jev.</p>
+      <p style="margin:0;">The best model landed within <b>$47 on average</b> on a task where prices range from $0.50 to nearly $1,000 — competitive with much larger, paid models. The project also surfaced a less flattering but equally important finding: <b>free-tier availability fluctuates significantly</b>, and a trustworthy benchmark has to show that variance instead of hiding it. Every number on this page is traceable to a CSV file in this repository — nothing here is simulated.</p>
+    </div>
+  </section>
+
+  <section id="what-is-this">
+    <h2><span class="emoji">💡</span>What is this, in plain English?</h2>
+    <p>If you've never worked with AI language models before, here's the 30-second version:</p>
+    <div class="grid-2">
+      <div class="feature">
+        <h4>1. The task</h4>
+        <p>We give an AI a product description — like <em>"Old Blood Noise Excess V2 Distortion Chorus/Delay Pedal"</em> with a short summary — and ask it to guess the price in dollars. No hints, no catalog lookup. Just world knowledge.</p>
+      </div>
+      <div class="feature">
+        <h4>2. The scoring</h4>
+        <p>We know the real price because the data comes from actual product listings. We compare the AI's guess to the truth and measure how far off it was, on average, across 30 different products.</p>
+      </div>
+      <div class="feature">
+        <h4>3. The models</h4>
+        <p>Instead of paying for a premium API, we used nine AI models currently offered <em>for free</em> and asked: are they actually any good, and can you actually rely on them?</p>
+      </div>
+      <div class="feature">
+        <h4>4. The honesty check</h4>
+        <p>Free things are often unreliable. So this project ran the same test multiple times and reports <em>how often each model even finished the job</em>, not just how accurate it was when it did.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <h2><span class="emoji">📊</span>Results at a glance</h2>
+    <figure>
+      <img src="results/assets/hero_comparison.png" alt="Bar chart comparing average error across 8 free models, colored by completion rate" />
+      <figcaption>Average error per model (n=30). Bar color shows how many of the 30 requests actually completed — accuracy only matters if the model answers in the first place.</figcaption>
+    </figure>
+
+    <figure>
+      <img src="results/assets/prediction_buildup.gif" alt="Animated scatter plot showing predictions landing one by one for fledge-alpha-free" />
+      <figcaption>Watch <code>fledge-alpha-free</code>'s 25 real predictions land, one at a time. Points on the dashed line are perfect guesses; green/orange/red mark how close each guess was.</figcaption>
+    </figure>
+
+    <h3>Full scoreboard</h3>
+    <div class="card">
+      <table id="results-table">
+        <thead>
+          <tr><th>Model</th><th>Completed</th><th class="num">Avg error</th><th class="num">r²</th><th class="num">Avg latency</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="dot dot-o"></span>fledge-alpha-free</td><td>25/30</td><td class="num">$47.31</td><td class="num">78.9%</td><td class="num">56.6s</td></tr>
+          <tr><td><span class="dot dot-g"></span>longcat-2.5-preview-free</td><td>30/30</td><td class="num">$64.39</td><td class="num">64.8%</td><td class="num">58.8s</td></tr>
+          <tr><td><span class="dot dot-g"></span>mimo-v2.6-flash-free</td><td>30/30</td><td class="num">$67.93</td><td class="num">56.7%</td><td class="num">37.3s</td></tr>
+          <tr><td><span class="dot dot-r"></span>muse-spark-1.3-contributor-free</td><td>12/30</td><td class="num">$73.39</td><td class="num">58.2%</td><td class="num">58.5s</td></tr>
+          <tr><td><span class="dot dot-g"></span>ling-3.1-flash-free</td><td>30/30</td><td class="num">$75.25</td><td class="num">57.8%</td><td class="num">72.1s</td></tr>
+          <tr><td><span class="dot dot-o"></span>nemotron-3.5-lightning-free</td><td>15/30</td><td class="num">$98.92</td><td class="num">-25.1%</td><td class="num">95.9s</td></tr>
+          <tr><td><span class="dot dot-g"></span>space-bunny-free</td><td>30/30</td><td class="num">$113.16</td><td class="num">-33.9%</td><td class="num">38.4s</td></tr>
+          <tr><td><span class="dot dot-r"></span>nemotron-3-ultra-free</td><td>2/30</td><td class="num">$24.48</td><td class="num">-428.9%</td><td class="num">89.7s</td></tr>
+        </tbody>
+      </table>
+      <p style="margin:14px 0 0; font-size:0.85rem;"><span class="dot dot-g"></span>30/30 completed &nbsp; <span class="dot dot-o"></span>15-29/30 &nbsp; <span class="dot dot-r"></span>under 15/30 &mdash; treat rows with low completion as unreliable samples, not real rankings. See <a href="#beginner-guide">the beginner guide</a> for what "r²" and "avg error" actually mean.</p>
+    </div>
+  </section>
+
+  <section id="use-cases">
+    <h2><span class="emoji">🧰</span>What can you actually do with this repo?</h2>
+    <div class="grid-2">
+      <div class="feature"><h4>Benchmark your own models</h4><p>Swap in any model ID your own AI provider exposes and get the same error/latency/reliability scoreboard, for free, with one command.</p></div>
+      <div class="feature"><h4>Learn AI evaluation from scratch</h4><p>The beginner guide below walks through every metric used here — no prior data science background assumed.</p></div>
+      <div class="feature"><h4>Stress-test a "free tier" before depending on it</h4><p>The multi-run reliability data gives you a template for finding out whether a free API is actually production-ready, before you build on it.</p></div>
+      <div class="feature"><h4>Use it as a template for your own benchmark</h4><p>The scoring harness, CSV logging, chart generation, and this very page are all generic — point them at a different task and dataset and reuse the whole pipeline.</p></div>
+      <div class="feature"><h4>Teach or learn prompt design</h4><p>The prompting lesson section below uses a real, citable example to show how the exact wording of a prompt changes cost, speed, and accuracy.</p></div>
+      <div class="feature"><h4>Interview prep</h4><p>Read the beginner guide and quiz below end to end and you'll be able to speak fluently about MAE, r², rate limiting, and evaluation bias — the kind of thing that comes up in real AI/ML interviews.</p></div>
+    </div>
+  </section>
+
+  <section id="beginner-guide">
+    <h2><span class="emoji">🌱</span>Beginner guide — read this and you are a professional</h2>
+    <p>Everything below assumes you know nothing about AI evaluation yet. By the end, you'll know more about how to read an AI benchmark than most people who claim to work in the field.</p>
+
+    <h3>What is a "model" here?</h3>
+    <p>A language model is software trained on huge amounts of text that can answer questions, write text, or — as in this project — make an estimate. "Free-tier" just means the provider lets you use it without paying, usually with some limits on how much or how fast you can use it.</p>
+
+    <h3>What does the model actually see?</h3>
+    <p>For every product, the model receives a short, cleaned-up description — title, category, brand, and a one-sentence summary — and this exact instruction:</p>
+    <pre><code>Estimate the price of this product. Respond with the price, no explanation.</code></pre>
+    <p>That's it. No catalog, no internet access, no hints. It has to rely on whatever it learned during training about what things like this typically cost.</p>
+
+    <h3>How do you measure if a guess is "good"?</h3>
+    <details open>
+      <summary>Average error (also called MAE — Mean Absolute Error)</summary>
+      <p>Take every guess, subtract the real price, ignore whether it was too high or too low (that's the "absolute" part), and average all those differences. An average error of <strong>$47</strong> means: across 30 different products, the model's guesses were off by $47 on average. Lower is better. It's the single easiest number to explain to a non-technical person.</p>
+    </details>
+    <details>
+      <summary>MSE (Mean Squared Error)</summary>
+      <p>Like average error, but each mistake is squared before averaging. Squaring punishes big misses much harder than small ones — being off by $200 counts 100&times; worse than being off by $20, not 10&times; worse. Useful when a few huge mistakes matter more to you than many small ones.</p>
+    </details>
+    <details>
+      <summary>r² ("r-squared")</summary>
+      <p>This answers: "compared to just guessing the <em>average price</em> every single time, how much better is this model actually doing?" It's expressed as a percentage-like score:</p>
+      <ul>
+        <li><strong>r² near 100%</strong> — the model is tracking real prices closely.</li>
+        <li><strong>r² near 0%</strong> — the model is doing roughly as well as always guessing the dataset's average price. Not impressive.</li>
+        <li><strong>r² below 0%</strong> (yes, this is possible and happens twice in this dataset) — the model is doing <em>worse</em> than if it had just guessed the same average number every time, ignoring the product entirely.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Completion rate (OK / 30)</summary>
+      <p>Before you trust any accuracy number, check how many of the 30 requests actually succeeded. A model that completed only 2 of 30 requests and happened to get both close to right will show a great "average error" that means almost nothing — that's <a href="https://en.wikipedia.org/wiki/Survivorship_bias" target="_blank" rel="noopener">survivorship bias</a>, and it's one of the most common ways benchmarks mislead people.</p>
+    </details>
+    <details>
+      <summary>Latency</summary>
+      <p>How long, in seconds, it took to get an answer back. Important caveat specific to this project: these free models can only be reached through a full AI-agent request (see the FAQ), which adds real overhead — so these latency numbers measure something different from a bare, stripped-down API call to a paid model.</p>
+    </details>
+
+    <h3>Why does the same model get different scores in different runs?</h3>
+    <p>Two reasons. First, many of these models have some randomness built in, so the exact same question can get a slightly different answer each time. Second — and this turned out to be the bigger factor here — free-tier backends can be under heavier or lighter load depending on when you run the test, which changes how many requests time out. See <a href="#reliability">Reliability across runs</a> below for real evidence of this.</p>
+  </section>
+
+  <section id="prompting">
+    <h2><span class="emoji">🧠</span>A real lesson in prompt design</h2>
+    <p>One of the most famous findings in AI research is almost absurdly simple: appending a short phrase to a question can make a model "think" before answering and noticeably improve its accuracy on reasoning problems — without giving it a single example to learn from. Researchers Kojima and colleagues (2022) tested several such phrases and found this one worked best:</p>
+    <blockquote>"Let's work this out in a step-by-step way to be sure we have the right answer."</blockquote>
+    <p>This project <em>deliberately does the opposite</em>. The prompt explicitly says <em>"no explanation"</em> and asks for just a number. Why? Because this benchmark is measuring quick, instinctive estimation — closer to what a human expert glances at and guesses, not a problem that benefits from showing your work. Step-by-step reasoning tends to cost more tokens, more time, and more money, and for a task this simple it may not even improve the answer.</p>
+    <p><strong>Try it yourself:</strong> fork this repo, add the step-by-step phrase to <code>SYSTEM_PROMPT</code> in <code>benchmark.py</code>, and re-run. Does accuracy improve enough to justify several times the latency and token cost? That tradeoff — reasoning quality vs. speed vs. cost — is one of the most practical skills in working with AI models.</p>
+  </section>
+
+  <section id="reliability">
+    <h2><span class="emoji">🔁</span>Reliability across runs — the part most benchmarks hide</h2>
+    <p>This benchmark was run three separate times, hours apart, under different conditions. The headline accuracy numbers barely matter if the model can't reliably respond in the first place — so here's the full picture:</p>
+    <div class="card">
+      <table>
+        <thead><tr><th>Run</th><th>Conditions</th><th>Models that hit 30/30</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Initial network path, no retry, 90s timeout</td><td>2 of 9</td></tr>
+          <tr><td>2</td><td>Different network path, 1 retry, 150s timeout</td><td><strong>8 of 8</strong></td></tr>
+          <tr><td>3 (shown above)</td><td>Same settings as run 2, different time of day</td><td>3 of 8</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px;"><strong>The takeaway:</strong> completion rate for these free models swings dramatically based on when you run the test, not just which network you're on. If you're evaluating a free-tier API for anything real, run it more than once, at different times, before trusting a single pass.</p>
+  </section>
+
+  <section id="quiz">
+    <h2><span class="emoji">🎓</span>Test yourself — from scratch to pro</h2>
+    <p>Ten questions, three difficulty tiers. Everything you need to answer them is on this page. This runs entirely in your browser — nothing is sent anywhere.</p>
+    <div class="quiz-card">
+      <div class="quiz-tabs" id="quiz-tabs"></div>
+      <div id="quiz-body"></div>
+      <div class="q-nav">
+        <span class="q-progress" id="q-progress"></span>
+        <span class="q-score" id="q-score">Score: 0 / 0</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="reproduce">
+    <h2><span class="emoji">🛠️</span>Run it yourself</h2>
+    <pre><code>pip install -r requirements.txt
+
+# start your local AI agent server (needs a free-tier provider configured)
+opencode serve --port 4096
+
+# run the benchmark — regenerates every CSV and PNG in results/
+python3 benchmark.py --size 30 --workers 4
+
+# regenerate this page's charts and GIF from the fresh data
+python3 scripts/make_assets.py</code></pre>
+    <p>Swap <code>--models</code> for any model IDs your provider exposes, and <code>--size</code> for however many test items you want to score (the original reference benchmark uses 200).</p>
+  </section>
+
+  <section id="faq">
+    <h2><span class="emoji">❓</span>FAQ</h2>
+    <details>
+      <summary>Why can't I just call these models with a normal, lightweight API request?</summary>
+      <p>These particular free models are gated behind a full agent runtime. A request with the tool-calling context stripped out gets rejected outright. A custom system-prompt override is fine — it's specifically removing the tool definitions that triggers the rejection. This was confirmed by isolating the two settings in separate test calls. Practical effect: every call carries real overhead, so latency numbers here reflect that, not a bare completion call.</p>
+    </details>
+    <details>
+      <summary>Is $0 cost really $0, no catch?</summary>
+      <p>Within this benchmark, yes — every call returned a cost of exactly $0.00. Free-tier terms can change, and availability (see Reliability above) is the real cost: your time waiting on retries and failed calls.</p>
+    </details>
+    <details>
+      <summary>Why exclude one of the nine models entirely?</summary>
+      <p>One model's ID consistently returned a routing error ("no route matching") rather than a timeout — a sign it's been removed or renamed on the provider's side, not a reliability issue a retry can fix. It was confirmed broken in isolated re-tests before being excluded.</p>
+    </details>
+    <details>
+      <summary>Can I trust the exact dollar figures?</summary>
+      <p>Trust the <em>ranking</em> more than the exact numbers. With 30 items per model, you have enough signal to say "model A is clearly better than model B" but not enough to say "model A is exactly $3.12 better." Scale up <code>--size</code> for tighter numbers.</p>
+    </details>
+  </section>
+
+</main>
+
+<footer>
+  <p>MIT Licensed · Built on the evaluation methodology from <a href="https://github.com/ed-donner/pricer" target="_blank" rel="noopener">ed-donner/pricer</a> · Every number on this page traces back to a CSV in this repository.</p>
+</footer>
+
+<script>
+(function(){
+  const QUESTIONS = [
+    {level:"Beginner", text:"What does it mean when an AI provider calls something \"free tier\"?",
+     options:["You can use it without paying, often with limits","It only works on Fridays","It's a trial that deletes your data","It means the model has no training data"],
+     correct:0, explain:"\"Free tier\" means no payment is required to use it, typically alongside rate limits or availability constraints — which is exactly what this project's reliability section explores."},
+    {level:"Beginner", text:"In this project, what is the AI model actually being asked to do?",
+     options:["Write a product review","Guess a product's price from its description","Translate the product title","Classify the product's category"],
+     correct:1, explain:"Each model receives a product description and is asked to estimate its real-world price in US dollars, no explanation."},
+    {level:"Beginner", text:"If a model's average error is $47, what does that tell you?",
+     options:["It was wrong 47 times","On average, its guesses were off by about $47 from the real price","It takes 47 seconds to answer","It only works 47% of the time"],
+     correct:1, explain:"Average error (MAE) is the mean of |guess − actual price| across all scored items — a plain-English measure of how far off the guesses typically were."},
+    {level:"Intermediate", text:"A model scores r² = 1.8%. What does that roughly mean?",
+     options:["It's nearly perfect","It's barely better than just guessing the dataset's average price every time","It failed every request","It's exactly as accurate as a human expert"],
+     correct:1, explain:"r² close to 0% means the model's guesses track real prices only marginally better than a naive \"always guess the average\" baseline."},
+    {level:"Intermediate", text:"A model scores r² = -428%. What does the negative sign tell you?",
+     options:["A data entry mistake, negative r² is impossible","The model is doing worse than simply guessing the average price every time","The model is extremely accurate","Negative numbers mean the price was refunded"],
+     correct:1, explain:"Negative r² is real and means the model's guesses are actively worse than the simplest possible baseline — usually a sign of a tiny, unreliable sample with one or two huge misses, exactly what happened here."},
+    {level:"Intermediate", text:"A model completed only 2 of 30 requests but had the lowest average error on this page. Should you rank it #1?",
+     options:["Yes, lowest error wins, always","No — 2 data points can't support a ranking; that's survivorship bias","Yes, because it never gives wrong answers","No, because free models are never trustworthy"],
+     correct:1, explain:"A 2/30 completion rate means you're looking at whichever 2 items happened to get through — not a representative sample. Always check completion rate before trusting an accuracy number."},
+    {level:"Advanced", text:"Why does this benchmark call a local AI agent server over HTTP instead of a standard chat-completion API?",
+     options:["It's faster that way","These specific free models reject bare completion requests and only work through the full agent runtime","HTTP is required by law for AI APIs","It was the only available programming language"],
+     correct:1, explain:"Stripping the tool-calling context from the request gets rejected outright by these particular free models — confirmed by testing the two settings (system prompt vs. tools) in isolation."},
+    {level:"Advanced", text:"What is \"zero-shot chain-of-thought\" prompting?",
+     options:["Giving the model 100 worked examples before the real question","Appending a short trigger phrase like \"let's think step by step\" with no examples at all","Asking ten different models the same question","Disabling the model's reasoning ability"],
+     correct:1, explain:"Introduced by Kojima et al. (2022): adding a simple trigger phrase, with zero examples, measurably improves reasoning-task accuracy for many models."},
+    {level:"Advanced", text:"Why might adding a step-by-step reasoning phrase NOT be a good idea for this specific pricer task?",
+     options:["It's technically impossible to combine with this API","It likely increases latency and token cost for a task that may not need deep reasoning","It would make the model refuse to answer","Step-by-step prompts are banned by OpenCode"],
+     correct:1, explain:"Reasoning tokens cost time and (on metered APIs) money. For a quick estimate task, the tradeoff may not be worth it — exactly why this project asks for a terse, explanation-free answer and invites you to test the alternative yourself."},
+    {level:"Advanced", text:"The same models were benchmarked three times with similar settings and got very different completion rates (2/9, 8/8, 3/8 hit 30/30). What's the most likely explanation?",
+     options:["The models got worse at math over time","Backend-side load/availability fluctuates independently of your own network path","The dataset changed between runs","It's impossible to determine this"],
+     correct:1, explain:"Run 2 was clean across every model; run 3, under the same client-side settings, degraded heavily — pointing to backend-side variability rather than anything on the caller's end."}
+  ];
+
+  const levels = ["Beginner","Intermediate","Advanced"];
+  let current = 0;
+  let answered = new Array(QUESTIONS.length).fill(false);
+  let score = 0;
+
+  const tabsEl = document.getElementById("quiz-tabs");
+  const bodyEl = document.getElementById("quiz-body");
+  const progressEl = document.getElementById("q-progress");
+  const scoreEl = document.getElementById("q-score");
+
+  levels.forEach((lvl, i) => {
+    const btn = document.createElement("button");
+    btn.className = "quiz-tab" + (i === 0 ? " active" : "");
+    btn.textContent = lvl;
+    btn.onclick = () => jumpToLevel(lvl);
+    tabsEl.appendChild(btn);
+  });
+
+  function jumpToLevel(lvl){
+    const idx = QUESTIONS.findIndex(q => q.level === lvl);
+    if (idx >= 0) { current = idx; render(); }
+  }
+
+  function render(){
+    const q = QUESTIONS[current];
+    bodyEl.innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "q visible";
+
+    const levelEl = document.createElement("div");
+    levelEl.className = "q-level";
+    levelEl.textContent = q.level + " · Question " + (current+1) + " of " + QUESTIONS.length;
+    div.appendChild(levelEl);
+
+    const textEl = document.createElement("div");
+    textEl.className = "q-text";
+    textEl.textContent = q.text;
+    div.appendChild(textEl);
+
+    const optsEl = document.createElement("div");
+    optsEl.className = "q-options";
+    q.options.forEach((opt, i) => {
+      const b = document.createElement("button");
+      b.className = "q-option";
+      b.textContent = opt;
+      b.onclick = () => selectAnswer(i, b, optsEl, explainEl);
+      optsEl.appendChild(b);
+    });
+    div.appendChild(optsEl);
+
+    const explainEl = document.createElement("div");
+    explainEl.className = "q-explain";
+    explainEl.textContent = q.explain;
+    div.appendChild(explainEl);
+
+    bodyEl.appendChild(div);
+
+    if (answered[current]) {
+      Array.from(optsEl.children).forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === q.correct) btn.classList.add("correct");
+      });
+      explainEl.classList.add("visible");
+    }
+
+    document.querySelectorAll(".quiz-tab").forEach((t, i) => {
+      t.classList.toggle("active", levels[i] === q.level);
+    });
+
+    progressEl.textContent = "Question " + (current+1) + " / " + QUESTIONS.length;
+    scoreEl.textContent = "Score: " + score + " / " + answered.filter(Boolean).length;
+    renderNav();
+  }
+
+  function selectAnswer(i, btn, optsEl, explainEl){
+    if (answered[current]) return;
+    answered[current] = true;
+    const q = QUESTIONS[current];
+    if (i === q.correct) { btn.classList.add("correct"); score++; }
+    else { btn.classList.add("wrong"); Array.from(optsEl.children)[q.correct].classList.add("correct"); }
+    Array.from(optsEl.children).forEach(b => b.disabled = true);
+    explainEl.classList.add("visible");
+    scoreEl.textContent = "Score: " + score + " / " + answered.filter(Boolean).length;
+    renderNav();
+  }
+
+  function renderNav(){
+    let nav = document.getElementById("q-inline-nav");
+    if (nav) nav.remove();
+    nav = document.createElement("div");
+    nav.id = "q-inline-nav";
+    nav.style.marginTop = "16px";
+    nav.style.display = "flex";
+    nav.style.gap = "10px";
+
+    const prev = document.createElement("button");
+    prev.className = "nav-btn";
+    prev.textContent = "← Previous";
+    prev.disabled = current === 0;
+    prev.onclick = () => { current--; render(); };
+    nav.appendChild(prev);
+
+    const next = document.createElement("button");
+    next.className = "nav-btn";
+    next.textContent = current === QUESTIONS.length - 1 ? "Finish" : "Next →";
+    next.disabled = current === QUESTIONS.length - 1 && answered[current];
+    next.onclick = () => {
+      if (current < QUESTIONS.length - 1) { current++; render(); }
+      else {
+        bodyEl.innerHTML = "<div class='q-text'>Done! Final score: " + score + " / " + QUESTIONS.length +
+          "</div><p style='color:var(--text-dim); font-size:0.9rem;'>Scroll back up to re-read any section the quiz caught you on — that's the whole point.</p>";
+      }
+    };
+    nav.appendChild(next);
+    document.getElementById("quiz-body").appendChild(nav);
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>
