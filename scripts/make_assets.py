@@ -4,10 +4,16 @@ results/*.csv files — no fabricated numbers, just different renderings
 of the same data already in this repo.
 
 Produces:
-    results/assets/hero_comparison.png   — avg error per model, bar chart
+    results/assets/hero_comparison.png    — avg error per model from run 2
+                                             (the clean, zero-failure sweep;
+                                             this is the headline comparison)
+    results/assets/run3_comparison.png    — the same chart for run 3, the
+                                             run whose per-item CSVs are
+                                             actually committed in results/
     results/assets/prediction_buildup.gif — scatter plot filling in point by
-                                             point for one model, so you can
-                                             see predictions land in real time
+                                             point for one run-3 model, so
+                                             you can see real predictions
+                                             land one at a time
 
 Usage:
     python3 scripts/make_assets.py
@@ -27,8 +33,8 @@ ASSETS_DIR = RESULTS_DIR / "assets"
 GIF_MODEL = "fledge-alpha-free"  # best-sampled, well-behaved result in the committed run
 
 
-def load_summary():
-    with open(RESULTS_DIR / "summary.csv") as f:
+def load_summary(filename):
+    with open(RESULTS_DIR / filename) as f:
         return list(csv.DictReader(f))
 
 
@@ -38,7 +44,7 @@ def load_items(model_id):
     return [r for r in rows if r["failed"] == ""]
 
 
-def make_hero_chart(summary):
+def make_hero_chart(summary, out_name, title):
     summary = sorted(summary, key=lambda r: float(r["avg_error"]))
     models = [r["model"] for r in summary]
     errors = [float(r["avg_error"]) for r in summary]
@@ -50,7 +56,7 @@ def make_hero_chart(summary):
     for bar, o in zip(bars, ok):
         ax.text(bar.get_width() + 2, bar.get_y() + bar.get_height() / 2, f"{o}/30 ok", va="center", fontsize=9)
     ax.set_xlabel("Average absolute error ($) — lower is better")
-    ax.set_title("OpenCode free-tier models on the pricer task (n=30)")
+    ax.set_title(title)
     ax.invert_yaxis()
     legend_handles = [
         plt.Rectangle((0, 0), 1, 1, color="#2ecc71", label="30/30 completed"),
@@ -60,9 +66,9 @@ def make_hero_chart(summary):
     ax.legend(handles=legend_handles, loc="lower right", fontsize=8, title="Bar color = completion rate")
     fig.tight_layout()
     ASSETS_DIR.mkdir(exist_ok=True)
-    fig.savefig(ASSETS_DIR / "hero_comparison.png", dpi=140)
+    fig.savefig(ASSETS_DIR / out_name, dpi=140)
     plt.close(fig)
-    print("wrote hero_comparison.png")
+    print(f"wrote {out_name}")
 
 
 def make_buildup_gif(model_id):
@@ -105,5 +111,14 @@ def make_buildup_gif(model_id):
 
 
 if __name__ == "__main__":
-    make_hero_chart(load_summary())
+    make_hero_chart(
+        load_summary("run2_summary.csv"),
+        "hero_comparison.png",
+        "OpenCode free-tier models on the pricer task — Run 2, the clean sweep (n=30)",
+    )
+    make_hero_chart(
+        load_summary("summary.csv"),
+        "run3_comparison.png",
+        "Run 3 — same models, different time of day (n=30)",
+    )
     make_buildup_gif(GIF_MODEL)

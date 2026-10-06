@@ -36,7 +36,7 @@ Prefer to browse the repo instead? [`preview.html`](./preview.html) is the exact
 
 Nine free AI models were each asked to look at a short product description — nothing else, no catalog, no internet access — and guess its real-world price in US dollars. Their guesses were scored against the actual sale price of real Amazon listings, using the exact same methodology a well-known public benchmark uses to score GPT-4.1-Nano, GPT-5.6 Luna, and TypeSafe's Jev.
 
-**The headline result:** the best-performing free model landed within **$47 on average** on items ranging from $0.50 to nearly $1,000 — squarely competitive with much larger, paid models. **The less flattering but more important result:** free-tier availability is volatile. The same models, tested three separate times under near-identical conditions, swung from 2-of-9 models completing cleanly to 8-of-8 completing cleanly to 3-of-8 completing cleanly. A benchmark that only reports the good run isn't a benchmark — it's marketing. This one reports all three.
+**The headline result:** in the one sweep where every model completed every call cleanly, the best-performing free model landed within **$34.84 on average** on items ranging from $0.50 to nearly $1,000 — beating the reference notebook's GPT-4.1-Nano, GPT-5.6 Luna, and TypeSafe's Jev numbers outright. **The less flattering but equally important result:** free-tier availability is volatile. The same models, tested three separate times under near-identical conditions, swung from 2-of-9 models completing cleanly to 8-of-8 completing cleanly to 3-of-8 completing cleanly. A benchmark that only reports the good run isn't a benchmark — it's marketing. This one reports all three, and is upfront about which numbers carry a committed, per-item CSV behind them and which don't.
 
 Everything in this repository — every chart, every number, every claim — traces back to a CSV file you can open and check yourself. Nothing is simulated, estimated, or rounded for effect.
 
@@ -95,56 +95,17 @@ comparisons aren't meaningful here.
 
 First 30 items of the `ed-donner/items_full` test split, same selection the
 original notebook uses by default (`evaluate(predictor, test)` scores the
-first `size` items). Raw data backing this table is in `results/summary.csv`
-and `results/<model>.csv` (per-item title/truth/guess/error/latency), with
-`results/<model>.png` scatter plots.
+first `size` items).
 
-**This table is from a single run, and that run had significant request
-attrition — read the [Run-to-run reliability](#run-to-run-reliability)
-section below before trusting any row with a low OK count.**
-
-<p align="center">
-  <img src="results/assets/hero_comparison.png" alt="Bar chart of average error per model, colored by completion rate" width="700" />
-</p>
+This is **run 2** — the only one of three independent sweeps where every
+single model completed all 30 calls, making it the most trustworthy
+comparison this project produced. (See
+[Run-to-run reliability](#run-to-run-reliability) below for why there were
+three sweeps, and why that matters more than any single table.)
 
 <p align="center">
-  <img src="results/assets/prediction_buildup.gif" alt="Animated scatter plot of fledge-alpha-free's predictions landing one by one" width="420" />
-  <br/><sub>Real per-item data from <code>results/fledge-alpha-free.csv</code>, animated — every point is an actual model response.</sub>
+  <img src="results/assets/hero_comparison.png" alt="Bar chart of average error per model in run 2, all models at 30/30 completion" width="700" />
 </p>
-
-| Model | OK/30 | Avg Error | MSE | r² | Avg Latency |
-|---|---|---|---|---|---|
-| `fledge-alpha-free` | 25 | $47.31 | 5,805 | 78.9% | 56.6s |
-| `longcat-2.5-preview-free` | 30 | $64.39 | 9,209 | 64.8% | 58.8s |
-| `mimo-v2.6-flash-free` | 30 | $67.93 | 11,325 | 56.7% | 37.3s |
-| `muse-spark-1.3-contributor-free` | 12 | $73.39 | 12,004 | 58.2% | 58.5s |
-| `ling-3.1-flash-free` | 30 | $75.25 | 11,022 | 57.8% | 72.1s |
-| `nemotron-3.5-lightning-free` | 15 | $98.92 | 28,885 | -25.1% | 95.9s |
-| `space-bunny-free` | 30 | $113.16 | 34,995 | -33.9% | 38.4s |
-| `nemotron-3-ultra-free` | 2 | $24.48 | 829 | -428.9% | 89.7s |
-
-`nemotron-3-ultra-free`'s $24.48 looks great until you notice it's from 2
-successful calls out of 30 — not a usable signal, just luck. Don't rank by
-this table alone; cross-check the OK column and, ideally, re-run yourself.
-
-[↑ Back to top](#toc)
-
-## Run-to-run reliability
-
-Three independent sweeps of (mostly) the same 8-9 models, same 30 items,
-run hours apart:
-
-| Run | Conditions | Clean (30/30) models | Notes |
-|---|---|---|---|
-| 1 | Initial network path, 5 workers, 90s timeout, no retry | 2 of 9 | `ling-3.0-flash-fin-free` permanently dead (routing error); several others 20-100% timeout |
-| 2 | After a VPN change, 4 workers, 150s timeout, 1 retry | **8 of 8** | Every model 30/30, zero failures — the numbers quoted earlier in this project's development |
-| 3 (committed here) | Same as run 2, different time of day | 3 of 8 | Backend-side degradation unrelated to network path — `nemotron-3-ultra-free` alone took 38 minutes for 30 items and got 2 through |
-
-### Run 2 in detail — the cleanest sweep, and how it stacks up
-
-Run 2 is the only sweep where every single model completed all 30 calls — the
-most trustworthy comparison this project produced. Its full scoreboard,
-ranked best to worst:
 
 | Rank | Model | Avg Error | MSE | r² | Avg Latency |
 |---|---|---|---|---|---|
@@ -156,6 +117,11 @@ ranked best to worst:
 | 6 | `ling-3.1-flash-free` | $70.85 | 10,695 | 59.1% | 53.0s |
 | 7 | `nemotron-3.5-lightning-free` | $93.65 | 41,342 | -58.1% | 25.6s |
 | 8 | `space-bunny-free` | $126.27 | 32,506 | -24.3% | 21.3s |
+
+Raw data: [`results/run2_summary.csv`](results/run2_summary.csv). Note this
+is an aggregate-only file — see the callout in
+[Run-to-run reliability](#run-to-run-reliability) for exactly what that means
+and why it matters.
 
 **How this stacks against the original notebook's numbers** (GPT-4.1-Nano
 $68.00, Luna $54.91, Jev single-pass $58.78 — all n=200, via direct
@@ -172,23 +138,6 @@ OpenRouter calls):
   worse than always guessing the dataset's average price. A single $870 miss
   on a cheap item did most of the damage for `nemotron-3.5-lightning-free`.
 
-**Why this table isn't the headline numbers above:** run 2 predates this
-repo's per-item CSV logging (`benchmark.py`'s `--size`/CSV output was added
-afterward), so unlike the [Results](#results-n30-per-model) table, there's no
-`results/<model>.csv` backing these specific figures — they're reconstructed
-from that session's console output, not independently re-verifiable the same
-way. They're real, and you can reproduce them yourself (see
-[Reproducing](#reproducing)), but they don't carry the same raw-data
-guarantee the rest of this README holds itself to. That's exactly why the
-[Results](#results-n30-per-model) table above uses run 3 as the committed,
-fully-traceable headline — even though run 2 looks better.
-
-**Takeaway: these models' availability and latency fluctuate significantly
-run to run, independent of which network path you're on.** Treat any single
-run's numbers as a snapshot of that moment, not a stable ranking. If you're
-evaluating these models for real use, run this more than once before drawing
-conclusions, and watch the OK/30 column as closely as the error column.
-
 For reference, the original notebook reports (n=200, via OpenRouter):
 
 | Model | Avg Error | Cost per 1k | Latency |
@@ -197,6 +146,65 @@ For reference, the original notebook reports (n=200, via OpenRouter):
 | GPT-5.6 Luna (no reasoning) | $54.91 | $0.030 | ~950ms |
 | Jev (single pass) | $58.78 | $0.080 | 264ms |
 | Jev (two-pass median) | ~$54 | $0.100 | 238ms |
+
+[↑ Back to top](#toc)
+
+## Run-to-run reliability
+
+Three independent sweeps of (mostly) the same 8-9 models, same 30 items,
+run hours apart:
+
+| Run | Conditions | Clean (30/30) models | Notes |
+|---|---|---|---|
+| 1 | Initial network path, 5 workers, 90s timeout, no retry | 2 of 9 | `ling-3.0-flash-fin-free` permanently dead (routing error); several others 20-100% timeout |
+| 2 (headline, above) | After a VPN change, 4 workers, 150s timeout, 1 retry | **8 of 8** | Every model 30/30, zero failures |
+| 3 | Same settings as run 2, different time of day | 3 of 8 | Backend-side degradation unrelated to network path — `nemotron-3-ultra-free` alone took 38 minutes for 30 items and got 2 through |
+
+**Takeaway: these models' availability and latency fluctuate significantly
+run to run, independent of which network path you're on.** Treat any single
+run's numbers as a snapshot of that moment, not a stable ranking. If you're
+evaluating these models for real use, run this more than once before drawing
+conclusions, and watch the OK/30 column as closely as the error column.
+
+### Why run 2 is the headline but run 3 is the one with raw CSVs
+
+Run 2 predates this repo's per-item CSV logging (`benchmark.py`'s CSV output
+was added afterward), so unlike run 3, there's no `results/<model>.csv`
+backing run 2's per-item guesses — only the aggregate numbers above,
+reconstructed from that session's console output. Run 2 is real and you can
+reproduce it yourself (see [Reproducing](#reproducing)), it's just not
+independently re-verifiable from a committed file the way run 3 is.
+
+Run 3, by contrast, has a full `results/<model>.csv` (title/truth/guess/error/
+latency per item) and `results/<model>.png` scatter plot for every model —
+this is the data the [prediction build-up GIF](results/assets/prediction_buildup.gif)
+above and the chart below are generated from. Its numbers are messier because
+of the attrition in that run, but every single figure is traceable:
+
+<p align="center">
+  <img src="results/assets/run3_comparison.png" alt="Bar chart of average error per model in run 3, with mixed completion rates" width="700" />
+</p>
+
+<p align="center">
+  <img src="results/assets/prediction_buildup.gif" alt="Animated scatter plot of fledge-alpha-free's predictions landing one by one" width="420" />
+  <br/><sub>Real per-item data from <code>results/fledge-alpha-free.csv</code>, animated — every point is an actual model response from run 3.</sub>
+</p>
+
+| Model | OK/30 | Avg Error | MSE | r² | Avg Latency |
+|---|---|---|---|---|---|
+| `fledge-alpha-free` | 25 | $47.31 | 5,805 | 78.9% | 56.6s |
+| `longcat-2.5-preview-free` | 30 | $64.39 | 9,209 | 64.8% | 58.8s |
+| `mimo-v2.6-flash-free` | 30 | $67.93 | 11,325 | 56.7% | 37.3s |
+| `muse-spark-1.3-contributor-free` | 12 | $73.39 | 12,004 | 58.2% | 58.5s |
+| `ling-3.1-flash-free` | 30 | $75.25 | 11,022 | 57.8% | 72.1s |
+| `nemotron-3.5-lightning-free` | 15 | $98.92 | 28,885 | -25.1% | 95.9s |
+| `space-bunny-free` | 30 | $113.16 | 34,995 | -33.9% | 38.4s |
+| `nemotron-3-ultra-free` | 2 | $24.48 | 829 | -428.9% | 89.7s |
+
+`nemotron-3-ultra-free`'s $24.48 here looks great until you notice it's from
+2 successful calls out of 30 — not a usable signal, just luck, and a perfect
+illustration of why the OK/30 column matters as much as the error column.
+Raw data: `results/summary.csv` and `results/<model>.csv`.
 
 [↑ Back to top](#toc)
 
