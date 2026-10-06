@@ -1,10 +1,11 @@
 # OpenCode Free-Tier Model Pricer Bench
 
-![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen) ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue) ![Reproducible](https://img.shields.io/badge/results-100%25%20reproducible-informational)
+![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen) ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue) ![Reproducible](https://img.shields.io/badge/results-100%25%20reproducible-informational) ![Pages: live](https://img.shields.io/badge/GitHub%20Pages-live-success)
 
 **Can a free AI model guess what something costs?** A fully reproducible benchmark of nine free-tier language models on a real price-estimation task, plus a from-scratch, beginner-to-professional guide explaining exactly how to read the results — written so that literally anyone, with zero prior AI experience, can understand every number on this page.
 
-📊 **[Open the interactive results page](./preview.html)** — charts, an animated prediction build-up, and a self-grading quiz, all in one page. (See [Hosting this page live](#hosting-this-page-live) to view it as a real website instead of a local file.)
+📊 **[Open the live interactive results page →](https://m0-ar.github.io/opencode-free-model-pricer-bench/)** — charts, an animated prediction build-up, and a self-grading quiz, all in one page.
+Prefer to browse the repo instead? [`preview.html`](./preview.html) is the exact same page, viewable locally with no server needed. See [Hosting this page live](#hosting-this-page-live) for how both are kept in sync and verified.
 
 <p align="center">
   <img src="results/assets/hero_screenshot.png" alt="Screenshot of the interactive results page" width="760" />
@@ -260,15 +261,32 @@ default is 200, which takes considerably longer at these per-call latencies).
 
 ## Hosting this page live
 
-`preview.html` (mirrored as `index.html`) is a self-contained page — no build step, no external dependencies beyond a system font. To serve it as an actual website instead of a local file:
+`preview.html` (mirrored as `index.html`) is a self-contained page — no build step, no external dependencies beyond a system font. This repo is already configured and live:
 
-1. Push this repository to GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-4. Choose the branch (usually `main`) and the folder (**/ (root)**), then **Save**.
-5. GitHub builds and publishes the site at `https://<your-username>.github.io/<repo-name>/` within a minute or two — `index.html` is served automatically at that root URL.
+1. **Settings → Pages → Build and deployment → Source:** Deploy from a branch
+2. **Branch:** `main`, folder **/ (root)** — not `/docs`; this repo doesn't use a `/docs` folder, so `index.html` and `preview.html` are served directly from the repo root.
+3. Every push to `main` triggers a rebuild automatically — no GitHub Actions workflow needed for a page this simple.
 
-No GitHub Actions workflow is needed for a page this simple; "Deploy from a branch" is the right tool here, and it redeploys automatically on every push to that branch.
+**Live, verified working:**
+
+| URL | Status |
+|---|---|
+| [`/`](https://m0-ar.github.io/opencode-free-model-pricer-bench/) | ✅ 200 — serves `index.html` |
+| [`/preview.html`](https://m0-ar.github.io/opencode-free-model-pricer-bench/preview.html) | ✅ 200 — identical content |
+| `/docs/preview.html` | n/a — not applicable; this repo serves from root, not `/docs` |
+
+A green "Pages build and deployment" run only proves *something* built — it never proves your actual path resolves. Don't take that on faith; after any Pages settings change, re-verify with a direct probe instead of just checking the Actions tab:
+
+```bash
+BASE="https://m0-ar.github.io/opencode-free-model-pricer-bench"
+for p in "" "preview.html" "results/assets/hero_comparison.png"; do
+  printf "/%s -> " "$p"; curl -s -o /dev/null -w "%{http_code}\n" "$BASE/$p"
+done
+# expect 200 on all three; a 404 on the asset path usually means an
+# absolute/local image path slipped in somewhere instead of a relative one
+```
+
+An empty `.nojekyll` file sits at the repo root so GitHub serves files as-is without Jekyll processing getting involved.
 
 [↑ Back to top](#toc)
 
